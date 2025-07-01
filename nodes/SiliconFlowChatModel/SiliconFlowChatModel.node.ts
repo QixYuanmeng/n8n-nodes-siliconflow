@@ -8,7 +8,7 @@ import {
 
 import axios from 'axios';
 
-// Simple SiliconFlow LLM implementation without LangChain dependencies
+// Simple SiliconFlow LLM implementation for AI Agent compatibility with Tools support
 class SiliconFlowSimpleLLM {
 	apiKey: string;
 	baseUrl: string;
@@ -18,6 +18,11 @@ class SiliconFlowSimpleLLM {
 	topP: number;
 	enableThinking: boolean;
 	thinkingBudget: number;
+	
+	// AI Agent compatibility properties
+	_llmType = 'siliconflow';
+	_modelType = 'base_chat_model';
+	supportsToolCalling = true; // This is crucial for AI Agent compatibility
 
 	constructor(config: {
 		apiKey: string;
@@ -39,19 +44,44 @@ class SiliconFlowSimpleLLM {
 		this.thinkingBudget = config.thinkingBudget ?? 4096;
 	}
 
-	async invoke(input: { messages: Array<{ role: string; content: string }> }): Promise<string> {
+	// Main invoke method with tools support
+	async invoke(input: any, options?: { tools?: any[]; toolChoice?: string }): Promise<any> {
+		let messages: Array<{ role: string; content: string; tool_calls?: any[] }>;
 		
+		// Handle different input formats for AI Agent compatibility
+		if (typeof input === 'string') {
+			messages = [{ role: 'user', content: input }];
+		} else if (input && typeof input === 'object' && 'messages' in input) {
+			messages = input.messages;
+		} else if (input && typeof input === 'object' && 'content' in input) {
+			messages = [{ role: 'user', content: (input as any).content }];
+		} else if (Array.isArray(input)) {
+			// Direct messages array
+			messages = input;
+		} else {
+			throw new Error('Invalid input format for SiliconFlow Chat Model');
+		}
+
 		const requestBody: any = {
 			model: this.model,
-			messages: input.messages,
+			messages: messages,
 			temperature: this.temperature,
 			max_tokens: this.maxTokens,
 			top_p: this.topP,
 			stream: false,
 		};
 
+		// Add tools support if provided
+		if (options?.tools && options.tools.length > 0) {
+			requestBody.tools = options.tools;
+			if (options.toolChoice) {
+				requestBody.tool_choice = options.toolChoice;
+			}
+		}
+
 		// Add reasoning parameters for reasoning models
-		if (this.enableThinking) {
+		if (this.enableThinking && !requestBody.tools) {
+			// Only enable thinking when not using tools (some models may not support both)
 			requestBody.enable_thinking = this.enableThinking;
 			requestBody.thinking_budget = this.thinkingBudget;
 		}
@@ -69,10 +99,59 @@ class SiliconFlowSimpleLLM {
 				throw new Error('No response received from SiliconFlow');
 			}
 
-			return choice.message.content || '';
+			// Return structured response for tools compatibility
+			const result = {
+				content: choice.message.content || '',
+				additional_kwargs: {},
+			};
+
+			// Include tool calls if present
+			if (choice.message.tool_calls) {
+				result.additional_kwargs = {
+					tool_calls: choice.message.tool_calls,
+				};
+			}
+
+			// Include reasoning if available
+			if (choice.message.reasoning_content) {
+				result.additional_kwargs = {
+					...result.additional_kwargs,
+					reasoning: choice.message.reasoning_content,
+				};
+			}
+
+			// For simple string responses (backward compatibility)
+			if (!choice.message.tool_calls && typeof input === 'string') {
+				return choice.message.content || '';
+			}
+
+			return result;
 		} catch (error) {
-			throw new Error(`SiliconFlow API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			throw new Error(
+				`SiliconFlow API error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			);
 		}
+	}
+
+	// Method specifically for tools calling (required by n8n AI Agent)
+	async invokeWithTools(messages: any[], tools: any[], toolChoice?: string): Promise<any> {
+		return this.invoke({ messages }, { tools, toolChoice });
+	}
+
+	// Alternative method names that n8n AI Agent might expect
+	async call(input: string | { messages: Array<{ role: string; content: string }> }): Promise<string> {
+		const result = await this.invoke(input);
+		return typeof result === 'string' ? result : result.content;
+	}
+
+	async generate(input: string | { messages: Array<{ role: string; content: string }> }): Promise<string> {
+		const result = await this.invoke(input);
+		return typeof result === 'string' ? result : result.content;
+	}
+
+	// Tools support check method
+	supportsTools(): boolean {
+		return true;
 	}
 }
 
@@ -83,14 +162,14 @@ export class SiliconFlowChatModel implements INodeType {
 		icon: 'file:siliconflow.svg',
 		group: ['transform'],
 		version: 1,
-		description: 'SiliconFlow Chat Model for AI Agent integration',
+		description: 'SiliconFlow Chat Model with Tools calling support for AI Agent integration',
 		defaults: {
 			name: 'SiliconFlow Chat Model',
 		},
 		codex: {
 			categories: ['AI'],
 			subcategories: {
-				AI: ['Language Models'],
+				AI: ['Language Models', 'Tools'],
 			},
 			resources: {
 				primaryDocumentation: [
@@ -99,6 +178,7 @@ export class SiliconFlowChatModel implements INodeType {
 					},
 				],
 			},
+			alias: ['@ai', 'chatmodel', 'llm', 'language model', 'siliconflow', 'tools'],
 		},
 		credentials: [
 			{
@@ -109,63 +189,74 @@ export class SiliconFlowChatModel implements INodeType {
 		inputs: [],
 		outputs: [NodeConnectionType.AiLanguageModel],
 		outputNames: ['Model'],
+		requestDefaults: {
+			returnFullResponse: false,
+		},
 		properties: [
 			{
 				displayName: 'Model',
 				name: 'model',
 				type: 'options',
-				description: 'The model which will generate the completion',
+				description: 'The model which will generate the completion (Tools calling enabled models)',
 				options: [
-					// Reasoning models
+					// GLM models with tools support
 					{
-						name: 'QwQ-32B (推理模型)',
+						name: 'GLM-4-Plus (工具调用)',
+						value: 'THUDM/glm-4-plus',
+					},
+					{
+						name: 'GLM-4-0520 (工具调用)',
+						value: 'THUDM/glm-4-0520',
+					},
+					{
+						name: 'GLM-4-AirX (工具调用)',
+						value: 'THUDM/glm-4-airx',
+					},
+					{
+						name: 'GLM-4-Air (工具调用)',
+						value: 'THUDM/glm-4-air',
+					},
+					{
+						name: 'GLM-4-Flash (工具调用)',
+						value: 'THUDM/glm-4-flash',
+					},
+					{
+						name: 'GLM-4-AllTools (工具调用)',
+						value: 'THUDM/glm-4-alltools',
+					},
+					// Qwen models with tools support
+					{
+						name: 'Qwen2.5-72B-Instruct (工具调用)',
+						value: 'Qwen/Qwen2.5-72B-Instruct',
+					},
+					{
+						name: 'Qwen2.5-32B-Instruct (工具调用)',
+						value: 'Qwen/Qwen2.5-32B-Instruct',
+					},
+					{
+						name: 'Qwen2.5-14B-Instruct (工具调用)',
+						value: 'Qwen/Qwen2.5-14B-Instruct',
+					},
+					{
+						name: 'Qwen2.5-7B-Instruct (工具调用)',
+						value: 'Qwen/Qwen2.5-7B-Instruct',
+					},
+					// DeepSeek models with tools support
+					{
+						name: 'DeepSeek-V2.5 (工具调用)',
+						value: 'deepseek-ai/DeepSeek-V2.5',
+					},
+					// Reasoning models (some support tools)
+					{
+						name: 'QwQ-32B (推理+工具)',
 						value: 'Qwen/QwQ-32B',
 					},
 					{
-						name: 'GLM-Z1-Rumination-32B-0414 (推理模型)',
-						value: 'THUDM/GLM-Z1-Rumination-32B-0414',
-					},
-					{
-						name: 'DeepSeek-R1 (推理模型)',
+						name: 'DeepSeek-R1 (推理+工具)',
 						value: 'Pro/deepseek-ai/DeepSeek-R1',
 					},
-					// Qwen3 series
-					{
-						name: 'Qwen3-235B-A22B',
-						value: 'Qwen/Qwen3-235B-A22B',
-					},
-					{
-						name: 'Qwen3-32B',
-						value: 'Qwen/Qwen3-32B',
-					},
-					{
-						name: 'Qwen3-14B',
-						value: 'Qwen/Qwen3-14B',
-					},
-					{
-						name: 'Qwen3-8B',
-						value: 'Qwen/Qwen3-8B',
-					},
-					// GLM series
-					{
-						name: 'GLM-4-32B-0414',
-						value: 'THUDM/GLM-4-32B-0414',
-					},
-					{
-						name: 'GLM-4-9B-0414',
-						value: 'THUDM/GLM-4-9B-0414',
-					},
-					// Others
-					{
-						name: 'DeepSeek-V2.5',
-						value: 'deepseek-ai/DeepSeek-V2.5',
-					},
-					{
-						name: 'Hunyuan-A13B-Instruct',
-						value: 'tencent/Hunyuan-A13B-Instruct',
-					},
 				],
-				default: 'Qwen/QwQ-32B',
+				default: 'THUDM/glm-4-plus',
 			},
 			{
 				displayName: 'Options',

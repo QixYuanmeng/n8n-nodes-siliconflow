@@ -167,4 +167,4 @@ Tested with n8n version 1.0+.
 
 ## License
 
-[MIT](https://github.com/your-username/n8n-nodes-siliconflow/blob/master/LICENSE.md)
+[MIT](https://github.com/QixYuanmeng/n8n-nodes-siliconflow/blob/master/LICENSE.md)

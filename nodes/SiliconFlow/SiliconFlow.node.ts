@@ -795,16 +795,16 @@ export class SiliconFlow implements INodeType {
 					// Extract and format the response data
 					const responseData = response.data;
 					const choice = responseData.choices?.[0];
-					
+
 					if (!choice) {
 						throw new NodeOperationError(this.getNode(), 'No response received from the model');
 					}
 
 					// Check if user wants simple output (just the message content)
 					const outputMode = this.getNodeParameter('outputMode', i, 'simple') as string;
-					
+
 					let outputData: any;
-					
+
 					if (outputMode === 'simple') {
 						// Simple output - just the message content for easy use in workflows
 						outputData = choice.message?.content || '';
@@ -813,24 +813,24 @@ export class SiliconFlow implements INodeType {
 						outputData = {
 							// Main content - what users typically want
 							message: choice.message?.content || '',
-							
+
 							// Additional useful information
 							model: responseData.model,
 							finishReason: choice.finish_reason,
-							
+
 							// Usage statistics
 							usage: responseData.usage,
-							
+
 							// Include reasoning content if available (for reasoning models)
 							...(choice.message?.reasoning_content && {
 								reasoning: choice.message.reasoning_content,
 							}),
-							
+
 							// Include tool calls if any
 							...(choice.message?.tool_calls && {
 								toolCalls: choice.message.tool_calls,
 							}),
-							
+
 							// Raw response for advanced users (can be hidden in UI)
 							_rawResponse: responseData,
 						};
@@ -871,11 +871,11 @@ export class SiliconFlow implements INodeType {
 					const outputData = {
 						// Main embedding data
 						embeddings: responseData.data?.map((item: any) => item.embedding) || [],
-						
+
 						// Metadata
 						model: responseData.model,
 						usage: responseData.usage,
-						
+
 						// Raw response for advanced users
 						_rawResponse: responseData,
 					};
@@ -944,14 +944,14 @@ export class SiliconFlow implements INodeType {
 					const outputData = {
 						// Main results - sorted by relevance
 						results: responseData.results || [],
-						
+
 						// Metadata
 						query: query,
 						documentsCount: documents.length,
-						
+
 						// Usage information
 						usage: responseData.tokens,
-						
+
 						// Raw response for advanced users
 						_rawResponse: responseData,
 					};
