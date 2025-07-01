@@ -302,8 +302,8 @@ export class SiliconFlowChatModel implements INodeType {
 		let stopSequences: string[] | undefined;
 		if (options.stop && options.stop.length > 0) {
 			stopSequences = options.stop
-				.flatMap(item => item.values?.map(v => v.sequence))
-				.filter(seq => seq && seq.trim().length > 0);
+				.flatMap((item) => item.values?.map((v) => v.sequence))
+				.filter((seq) => seq && seq.trim().length > 0);
 		}
 
 		const model = new ChatOpenAI({
