@@ -67,65 +67,47 @@ export class SiliconFlowChatModel implements INodeType {
 				displayName: 'Model',
 				name: 'model',
 				type: 'options',
-				description: 'The model which will generate the completion. All models support tools calling.',
-				options: [
-					// GLM models with tools support
-					{
-						name: 'GLM-4-Plus (推荐)',
-						value: 'THUDM/glm-4-plus',
+				description:
+					'The model which will generate the completion. All models support tools calling.',
+				typeOptions: {
+					loadOptions: {
+						routing: {
+							request: {
+								method: 'GET',
+								url: '/models?sub_type=chat',
+							},
+							output: {
+								postReceive: [
+									{
+										type: 'rootProperty',
+										properties: {
+											property: 'data',
+										},
+									},
+									{
+										type: 'setKeyValue',
+										properties: {
+											name: '={{$responseItem.id}}',
+											value: '={{$responseItem.id}}',
+										},
+									},
+									{
+										type: 'sort',
+										properties: {
+											key: 'name',
+										},
+									},
+								],
+							},
+						},
 					},
-					{
-						name: 'GLM-4-0520',
-						value: 'THUDM/glm-4-0520',
+				},
+				routing: {
+					send: {
+						type: 'body',
+						property: 'model',
 					},
-					{
-						name: 'GLM-4-AirX',
-						value: 'THUDM/glm-4-airx',
-					},
-					{
-						name: 'GLM-4-Air',
-						value: 'THUDM/glm-4-air',
-					},
-					{
-						name: 'GLM-4-Flash',
-						value: 'THUDM/glm-4-flash',
-					},
-					{
-						name: 'GLM-4-AllTools',
-						value: 'THUDM/glm-4-alltools',
-					},
-					// Qwen models with tools support
-					{
-						name: 'Qwen2.5-72B-Instruct',
-						value: 'Qwen/Qwen2.5-72B-Instruct',
-					},
-					{
-						name: 'Qwen2.5-32B-Instruct',
-						value: 'Qwen/Qwen2.5-32B-Instruct',
-					},
-					{
-						name: 'Qwen2.5-14B-Instruct',
-						value: 'Qwen/Qwen2.5-14B-Instruct',
-					},
-					{
-						name: 'Qwen2.5-7B-Instruct',
-						value: 'Qwen/Qwen2.5-7B-Instruct',
-					},
-					// DeepSeek models
-					{
-						name: 'DeepSeek-V2.5',
-						value: 'deepseek-ai/DeepSeek-V2.5',
-					},
-					// Reasoning models
-					{
-						name: 'QwQ-32B (推理模型)',
-						value: 'Qwen/QwQ-32B',
-					},
-					{
-						name: 'DeepSeek-R1 (推理模型)',
-						value: 'Pro/deepseek-ai/DeepSeek-R1',
-					},
-				],
+				},
 				default: 'THUDM/glm-4-plus',
 			},
 			{
@@ -139,7 +121,7 @@ export class SiliconFlowChatModel implements INodeType {
 					{
 						displayName: 'Frequency Penalty',
 						name: 'frequencyPenalty',
-						default: 0,
+						default: 0.5,
 						typeOptions: { maxValue: 2, minValue: -2, numberPrecision: 1 },
 						description:
 							"Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim",
@@ -198,12 +180,55 @@ export class SiliconFlowChatModel implements INodeType {
 						type: 'number',
 					},
 					{
+						displayName: 'Min P',
+						name: 'minP',
+						default: 0.05,
+						typeOptions: { maxValue: 1, minValue: 0, numberPrecision: 3 },
+						description:
+							'Dynamic filtering threshold that adapts based on token probabilities. Only applies to Qwen3 models.',
+						type: 'number',
+					},
+					{
 						displayName: 'Top K',
 						name: 'topK',
 						default: 50,
 						typeOptions: { maxValue: 100, minValue: 1 },
 						description: 'Limits the number of tokens to consider for each step.',
 						type: 'number',
+					},
+					{
+						displayName: 'Number of Generations',
+						name: 'n',
+						default: 1,
+						typeOptions: { maxValue: 10, minValue: 1 },
+						description: 'Number of generations to return.',
+						type: 'number',
+					},
+					{
+						displayName: 'Stop Sequences',
+						name: 'stop',
+						default: [],
+						description: 'Up to 4 sequences where the API will stop generating further tokens.',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+							maxValue: 4,
+						},
+						options: [
+							{
+								name: 'values',
+								displayName: 'Stop Sequence',
+								values: [
+									{
+										displayName: 'Stop Sequence',
+										name: 'sequence',
+										type: 'string',
+										default: '',
+										placeholder: 'Enter stop sequence',
+									},
+								],
+							},
+						],
 					},
 					{
 						displayName: 'Enable Thinking (推理模型)',
@@ -241,7 +266,10 @@ export class SiliconFlowChatModel implements INodeType {
 			presencePenalty?: number;
 			temperature?: number;
 			topP?: number;
+			minP?: number;
 			topK?: number;
+			n?: number;
+			stop?: { values: { sequence: string }[] }[];
 			enableThinking?: boolean;
 			thinkingBudget?: number;
 		};
@@ -259,9 +287,23 @@ export class SiliconFlowChatModel implements INodeType {
 			modelKwargs.thinking_budget = options.thinkingBudget || 4096;
 		}
 
-		// Add other SiliconFlow specific parameters
+		// Add SiliconFlow specific parameters
 		if (options.topK !== undefined) {
 			modelKwargs.top_k = options.topK;
+		}
+		if (options.minP !== undefined && modelName.includes('Qwen3')) {
+			modelKwargs.min_p = options.minP;
+		}
+		if (options.n !== undefined && options.n > 1) {
+			modelKwargs.n = options.n;
+		}
+
+		// Process stop sequences
+		let stopSequences: string[] | undefined;
+		if (options.stop && options.stop.length > 0) {
+			stopSequences = options.stop
+				.flatMap(item => item.values?.map(v => v.sequence))
+				.filter(seq => seq && seq.trim().length > 0);
 		}
 
 		const model = new ChatOpenAI({
@@ -270,10 +312,11 @@ export class SiliconFlowChatModel implements INodeType {
 			maxTokens: options.maxTokens || -1,
 			temperature: options.temperature ?? 0.7,
 			topP: options.topP ?? 1,
-			frequencyPenalty: options.frequencyPenalty ?? 0,
+			frequencyPenalty: options.frequencyPenalty ?? 0.5,
 			presencePenalty: options.presencePenalty ?? 0,
 			timeout: options.timeout ?? 60000,
 			maxRetries: options.maxRetries ?? 2,
+			stop: stopSequences,
 			configuration,
 			modelKwargs: Object.keys(modelKwargs).length > 0 ? modelKwargs : undefined,
 		});

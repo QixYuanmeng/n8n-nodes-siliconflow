@@ -7,6 +7,7 @@
    - 基于 LangChain ChatOpenAI 的标准实现
    - 完全兼容 n8n AI Agent 和 Tools Agent
    - 支持所有 SiliconFlow 模型的工具调用能力
+   - **新增**: 动态模型列表加载（通过 API 获取）
 
 2. **TypeScript 兼容性问题解决**
    - 升级 TypeScript 到 5.8.2
@@ -14,9 +15,16 @@
    - 成功构建无错误
 
 3. **模型配置优化**
-   - 预配置所有支持工具调用的模型
+   - **新增**: 动态从 SiliconFlow API 获取模型列表
+   - 自动过滤聊天模型（`sub_type=chat`）
    - 特别支持推理模型（QwQ-32B、DeepSeek-R1）
    - 添加思维链推理参数配置
+
+4. **参数完整性增强**
+   - **新增**: `min_p` 参数（Qwen3 模型专用）
+   - **新增**: `n` 参数（生成数量）
+   - **新增**: `stop` 参数（停止序列）
+   - **优化**: `frequency_penalty` 默认值调整为 0.5
 
 ### 🔧 技术实现细节
 
@@ -30,16 +38,22 @@
 ```
 
 #### 2. 模型支持列表
-所有配置模型均支持工具调用：
-- **GLM 系列**: GLM-4-Plus, GLM-4-0520, GLM-4-AirX, GLM-4-Air, GLM-4-Flash, GLM-4-AllTools
-- **Qwen 系列**: Qwen2.5-72B/32B/14B/7B-Instruct
-- **DeepSeek 系列**: DeepSeek-V2.5
-- **推理模型**: QwQ-32B, DeepSeek-R1
+**动态加载** - 通过 SiliconFlow API 实时获取支持聊天的模型：
+- **API 端点**: `/v1/models?sub_type=chat`
+- **自动过滤**: 仅显示聊天模型
+- **实时更新**: 包含 GLM、Qwen、DeepSeek 等系列最新模型
+- **推理模型**: 自动识别 QwQ-32B、DeepSeek-R1 等推理模型
 
 #### 3. 参数配置
-- 标准 OpenAI 兼容参数：temperature, top_p, max_tokens, frequency_penalty, presence_penalty
-- SiliconFlow 扩展参数：top_k, enable_thinking, thinking_budget
-- 错误处理和重试机制
+- **标准 OpenAI 兼容参数**: temperature, top_p, max_tokens, frequency_penalty, presence_penalty
+- **SiliconFlow 扩展参数**: 
+  - `top_k` - Token 选择限制
+  - `min_p` - 动态过滤阈值（Qwen3 专用）
+  - `enable_thinking` / `thinking_budget` - 推理模型思维链
+  - `n` - 生成数量
+  - `stop` - 停止序列（最多 4 个）
+- **错误处理和重试机制**
+- **动态模型列表加载**
 
 ### 📦 包配置更新
 
@@ -107,15 +121,27 @@ async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyD
   
   // 配置 SiliconFlow 特定参数
   const modelKwargs: any = {};
+  
+  // 推理模型思维链参数
   if (options.enableThinking && (modelName.includes('QwQ') || modelName.includes('R1'))) {
     modelKwargs.enable_thinking = true;
     modelKwargs.thinking_budget = options.thinkingBudget || 4096;
   }
   
+  // SiliconFlow 扩展参数
+  if (options.topK !== undefined) modelKwargs.top_k = options.topK;
+  if (options.minP !== undefined && modelName.includes('Qwen3')) modelKwargs.min_p = options.minP;
+  if (options.n !== undefined && options.n > 1) modelKwargs.n = options.n;
+  
+  // 处理停止序列
+  let stopSequences = options.stop?.flatMap(item => 
+    item.values?.map(v => v.sequence)).filter(seq => seq?.trim());
+  
   const model = new ChatOpenAI({
     openAIApiKey: credentials.apiKey,
     model: modelName,
     configuration: { baseURL: credentials.baseUrl },
+    stop: stopSequences,
     modelKwargs: Object.keys(modelKwargs).length > 0 ? modelKwargs : undefined,
     // ... 其他标准参数
   });
