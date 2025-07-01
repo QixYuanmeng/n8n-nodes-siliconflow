@@ -1,0 +1,65 @@
+{
+	"name": "n8n-nodes-siliconflow",
+	"version": "1.1.0",
+	"description": "n8n community node for SiliconFlow AI models - chat completions, embeddings, and reranking",
+	"keywords": [
+		"n8n-community-node-package",
+		"siliconflow",
+		"ai",
+		"llm",
+		"machine-learning",
+		"embeddings",
+		"rerank",
+		"qwen",
+		"glm",
+		"deepseek",
+		"chat-completion",
+		"reasoning"
+	],
+	"license": "MIT",
+	"homepage": "https://github.com/QixYuanmeng/n8n-nodes-siliconflow",
+	"author": {
+		"name": "QixYuanmeng",
+		"email": "3286046540@qq.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/QixYuanmeng/n8n-nodes-siliconflow.git"
+	},
+	"main": "index.js",
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"format": "prettier nodes credentials --write",
+		"lint": "eslint nodes credentials --ext .ts",
+		"lint:fix": "eslint nodes credentials --ext .ts --fix",
+		"prepublishOnly": "npm run build"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"credentials": [
+			"dist/credentials/SiliconFlowApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/SiliconFlow/SiliconFlow.node.js"
+		]
+	},
+	"devDependencies": {
+		"@typescript-eslint/parser": "^5.45.0",
+		"@typescript-eslint/eslint-plugin": "^5.45.0",
+		"eslint": "^8.29.0",
+		"eslint-plugin-n8n-nodes-base": "^1.16.1",
+		"n8n-workflow": "^1.0.0",
+		"prettier": "^2.7.1",
+		"typescript": "^4.8.4"
+	},
+	"dependencies": {
+		"axios": "^1.6.0"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

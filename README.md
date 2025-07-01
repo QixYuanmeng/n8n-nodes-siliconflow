@@ -1,0 +1,109 @@
+# n8n-nodes-siliconflow
+
+An n8n community node to integrate with SiliconFlow AI models, providing access to chat completions, text embeddings, and document reranking capabilities.
+
+## Features
+
+- 🤖 **Chat Completions**: Access to 20+ AI models including Qwen, GLM, DeepSeek, Hunyuan, and MiniMax
+- 🧮 **Text Embeddings**: Support for 9 embedding models including BGE, Qwen3-Embedding, and YoudAo
+- 📊 **Document Reranking**: Rerank documents for better relevance with 6 reranking models
+- ⚡ **Advanced Parameters**: Full support for reasoning models, streaming, and custom formats
+- 🔐 **Secure Authentication**: API key-based authentication with configurable base URL
+
+## Supported Models
+
+### Chat Completion Models
+- **Qwen Series**: QwQ-32B (reasoning), Qwen3-235B-A22B, Qwen3-32B, Qwen3-14B, Qwen3-8B, Qwen2.5 series
+- **GLM Series**: GLM-Z1-32B, GLM-4-32B, GLM-Z1-Rumination-32B (reasoning), GLM-4-9B series
+- **DeepSeek**: DeepSeek-V2.5, DeepSeek-R1 (reasoning)
+- **Others**: Hunyuan-A13B-Instruct, MiniMax-M1-80k, QwenLong-L1-32B
+
+### Embedding Models
+- **BGE Series**: bge-large-zh-v1.5, bge-large-en-v1.5, bge-m3 (multilingual)
+- **Qwen3-Embedding**: 8B, 4B, 0.6B (up to 32K tokens)
+- **Others**: YoudAo BCE, sentence-transformers models
+
+### Reranking Models
+- **Qwen3-Reranker**: 8B, 4B, 0.6B
+- **BGE-Reranker**: v2-m3, Pro/v2-m3
+- **YoudAo**: bce-reranker-base_v1
+
+## Installation
+
+Community nodes are not available in the npm registry. To install this node, you have the following options:
+
+### Option 1: User Installation via n8n Community Nodes
+
+1. Go to **Settings > Community Nodes**.
+2. Select **Install**.
+3. Enter `n8n-nodes-siliconflow` in **Enter npm package name**.
+4. Agree to the [risks](https://docs.n8n.io/integrations/community-nodes/risks/) of using community nodes: select **I understand the risks of installing unverified code from a public source**.
+5. Select **Install**.
+
+After installing the node, you can use it like any other node. n8n displays the node in search results in the **Nodes** panel.
+
+### Option 2: Manual installation
+
+To get started install the package in your n8n root directory:
+
+`npm install n8n-nodes-siliconflow`
+
+For Docker-based deployments, add the following line before the font installation command in your [n8n Dockerfile](https://github.com/n8n-io/n8n/blob/master/docker/images/n8n/n8n/Dockerfile):
+
+`RUN cd /usr/local/lib/node_modules/n8n && npm install n8n-nodes-siliconflow`
+
+## Configuration
+
+You will need a SiliconFlow API key to use this node. You can get one from [SiliconFlow](https://siliconflow.cn/).
+
+1. Create a SiliconFlow account at [https://cloud.siliconflow.cn](https://cloud.siliconflow.cn)
+2. Generate an API key from your account settings
+3. In n8n, create a new SiliconFlow API credential with:
+   - **API Key**: Your SiliconFlow API key
+   - **Base URL**: `https://api.siliconflow.cn/v1` (default)
+
+## Operations
+
+The SiliconFlow node supports three main operations:
+
+### 1. Chat Completion
+Generate text completions using SiliconFlow's language models. Features include:
+- Support for reasoning models (QwQ-32B, GLM-Z1-Rumination, DeepSeek-R1)
+- Advanced parameters: temperature, top_p, top_k, min_p, frequency_penalty
+- Thinking mode for chain-of-thought reasoning
+- Streaming and custom response formats
+- System, user, and assistant message roles
+
+### 2. Text Embedding
+Generate vector embeddings for text using various embedding models:
+- Support for Chinese, English, and multilingual models
+- Token limits from 512 to 32,768 depending on model
+- Float or Base64 encoding formats
+- Batch processing support
+
+### 3. Document Reranking
+Rerank documents based on relevance to a query:
+- Support for multiple reranking algorithms
+- Configurable top-N results
+- Document chunking for long texts
+- Relevance scoring
+
+## Advanced Features
+
+- **Reasoning Models**: Enable thinking mode for step-by-step problem solving
+- **Long Context**: Support for models with up to 80K context length
+- **Multilingual**: Chinese, English, and multilingual model options
+- **Flexible Input**: Support for simple prompts or structured message arrays
+
+## Compatibility
+
+Tested with n8n version 1.0+.
+
+## Resources
+
+- [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
+- [SiliconFlow API documentation](https://docs.siliconflow.cn/)
+
+## License
+
+[MIT](https://github.com/your-username/n8n-nodes-siliconflow/blob/master/LICENSE.md)
