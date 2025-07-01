@@ -129,99 +129,43 @@ export class SiliconFlow implements INodeType {
 						operation: ['complete'],
 					},
 				},
-				options: [
-					// Qwen系列 (推理模型)
-					{
-						name: 'QwQ-32B (推理模型)',
-						value: 'Qwen/QwQ-32B',
+				description:
+					'The model which will generate the completion. All models support tools calling.',
+				typeOptions: {
+					loadOptions: {
+						routing: {
+							request: {
+								method: 'GET',
+								url: '/models?sub_type=chat',
+							},
+							output: {
+								postReceive: [
+									{
+										type: 'rootProperty',
+										properties: {
+											property: 'data',
+										},
+									},
+									{
+										type: 'setKeyValue',
+										properties: {
+											name: '={{$responseItem.id}}',
+											value: '={{$responseItem.id}}',
+										},
+									},
+									{
+										type: 'sort',
+										properties: {
+											key: 'name',
+										},
+									},
+								],
+							},
+						},
 					},
-					// Qwen3系列
-					{
-						name: 'Qwen3-235B-A22B',
-						value: 'Qwen/Qwen3-235B-A22B',
-					},
-					{
-						name: 'Qwen3-32B',
-						value: 'Qwen/Qwen3-32B',
-					},
-					{
-						name: 'Qwen3-30B-A3B',
-						value: 'Qwen/Qwen3-30B-A3B',
-					},
-					{
-						name: 'Qwen3-14B',
-						value: 'Qwen/Qwen3-14B',
-					},
-					{
-						name: 'Qwen3-8B',
-						value: 'Qwen/Qwen3-8B',
-					},
-					// Qwen2.5系列 (保留原有)
-					{
-						name: 'Qwen2.5-7B-Instruct',
-						value: 'Qwen/Qwen2.5-7B-Instruct',
-					},
-					{
-						name: 'Qwen2.5-14B-Instruct',
-						value: 'Qwen/Qwen2.5-14B-Instruct',
-					},
-					{
-						name: 'Qwen2.5-32B-Instruct',
-						value: 'Qwen/Qwen2.5-32B-Instruct',
-					},
-					{
-						name: 'Qwen2.5-72B-Instruct',
-						value: 'Qwen/Qwen2.5-72B-Instruct',
-					},
-					// 通义千问长文本
-					{
-						name: 'QwenLong-L1-32B',
-						value: 'Tongyi-Zhiwen/QwenLong-L1-32B',
-					},
-					// GLM系列
-					{
-						name: 'GLM-Z1-32B-0414',
-						value: 'THUDM/GLM-Z1-32B-0414',
-					},
-					{
-						name: 'GLM-4-32B-0414',
-						value: 'THUDM/GLM-4-32B-0414',
-					},
-					{
-						name: 'GLM-Z1-Rumination-32B-0414 (推理模型)',
-						value: 'THUDM/GLM-Z1-Rumination-32B-0414',
-					},
-					{
-						name: 'GLM-4-9B-0414',
-						value: 'THUDM/GLM-4-9B-0414',
-					},
-					{
-						name: 'GLM-4-9B-Chat',
-						value: 'THUDM/glm-4-9b-chat',
-					},
-					// DeepSeek系列
-					{
-						name: 'DeepSeek-V2.5',
-						value: 'deepseek-ai/DeepSeek-V2.5',
-					},
-					{
-						name: 'DeepSeek-R1 (推理模型)',
-						value: 'Pro/deepseek-ai/DeepSeek-R1',
-					},
-					// 腾讯混元
-					{
-						name: 'Hunyuan-A13B-Instruct',
-						value: 'tencent/Hunyuan-A13B-Instruct',
-					},
-					// MiniMax
-					{
-						name: 'MiniMax-M1-80k',
-						value: 'MiniMaxAI/MiniMax-M1-80k',
-					},
-				],
-				default: 'Qwen/QwQ-32B',
+				},
+				default: 'THUDM/glm-4-plus',
 				required: true,
-				description: 'The model to use for completion',
 			},
 			{
 				displayName: 'Messages',

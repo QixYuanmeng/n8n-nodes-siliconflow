@@ -20,12 +20,13 @@ export class SiliconFlowChatModel implements INodeType {
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-name-miscased
 		name: 'siliconFlowChatModel',
 		icon: 'file:siliconflow.svg',
-		group: ['transform'],
+		group: ['ai'],
 		version: [1],
-		description: 'For advanced usage with an AI chain',
+		description: 'LangChain-compatible SiliconFlow chat model for AI agents',
 		defaults: {
 			name: 'SiliconFlow Chat Model',
 		},
+		// 添加 LangChain 兼容标识
 		codex: {
 			categories: ['AI'],
 			subcategories: {
@@ -45,6 +46,8 @@ export class SiliconFlowChatModel implements INodeType {
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
 		outputs: [NodeConnectionType.AiLanguageModel],
 		outputNames: ['Model'],
+		// 添加 LangChain Chat Model 标识
+		subtitle: '={{$parameter["model"]}}',
 		credentials: [
 			{
 				name: 'siliconFlowApi',
@@ -57,9 +60,8 @@ export class SiliconFlowChatModel implements INodeType {
 		},
 		properties: [
 			{
-				displayName:
-					'Connect to AI Agent, Tools Agent, or AI Chain to use this node. SiliconFlow models support function calling and reasoning capabilities.',
-				name: 'connectionNotice',
+				displayName: 'Connect to AI Agent, Tools Agent, or AI Chain to use this node',
+				name: 'notice',
 				type: 'notice',
 				default: '',
 			},
