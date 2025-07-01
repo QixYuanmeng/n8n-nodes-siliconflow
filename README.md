@@ -7,6 +7,8 @@ An n8n community node to integrate with SiliconFlow AI models, providing access 
 - 🤖 **Chat Completions**: Access to 20+ AI models including Qwen, GLM, DeepSeek, Hunyuan, and MiniMax
 - 🧮 **Text Embeddings**: Support for 9 embedding models including BGE, Qwen3-Embedding, and YoudAo
 - 📊 **Document Reranking**: Rerank documents for better relevance with 6 reranking models
+- 🎯 **AI Agent Integration**: Dedicated node for seamless integration with n8n AI Agent nodes
+- 🔧 **Flexible Output**: Choose between simple (message-only) and detailed (with metadata) output modes
 - ⚡ **Advanced Parameters**: Full support for reasoning models, streaming, and custom formats
 - 🔐 **Secure Authentication**: API key-based authentication with configurable base URL
 
@@ -64,29 +66,88 @@ You will need a SiliconFlow API key to use this node. You can get one from [Sili
 
 ## Operations
 
-The SiliconFlow node supports three main operations:
+The SiliconFlow node provides two types of nodes:
 
-### 1. Chat Completion
+### SiliconFlow Node
+The main node supports three operations:
+
+#### 1. Chat Completion
 Generate text completions using SiliconFlow's language models. Features include:
+- **Output Modes**: 
+  - **Simple**: Returns only the message content as a string (ideal for chat workflows)
+  - **Detailed**: Returns structured data with message, usage, metadata, and reasoning content
 - Support for reasoning models (QwQ-32B, GLM-Z1-Rumination, DeepSeek-R1)
 - Advanced parameters: temperature, top_p, top_k, min_p, frequency_penalty
 - Thinking mode for chain-of-thought reasoning
 - Streaming and custom response formats
 - System, user, and assistant message roles
 
-### 2. Text Embedding
+#### 2. Text Embedding
 Generate vector embeddings for text using various embedding models:
 - Support for Chinese, English, and multilingual models
 - Token limits from 512 to 32,768 depending on model
 - Float or Base64 encoding formats
 - Batch processing support
 
-### 3. Document Reranking
+#### 3. Document Reranking
 Rerank documents based on relevance to a query:
 - Support for multiple reranking algorithms
 - Configurable top-N results
 - Document chunking for long texts
 - Relevance scoring
+
+### SiliconFlow Chat Model Node
+A specialized node designed for AI Agent integration:
+- **AI Agent Compatibility**: Can be used as a language model provider in n8n AI Agent nodes
+- **Seamless Integration**: Works with official AI Agent, AI Tool, and AI Memory nodes
+- **Multi-turn Conversations**: Supports complex dialogue scenarios
+- **Reasoning Support**: Full support for reasoning models with thinking capabilities
+
+## Usage Examples
+
+### Basic Chat with Simple Output
+```json
+{
+  "resource": "chat",
+  "operation": "complete",
+  "model": "Qwen/QwQ-32B",
+  "prompt": "Hello, how are you?",
+  "outputMode": "simple"
+}
+```
+**Output**: `"Hello! I'm doing well, thank you for asking. How can I help you today?"`
+
+### Chat with Detailed Output
+```json
+{
+  "resource": "chat", 
+  "operation": "complete",
+  "model": "Qwen/QwQ-32B",
+  "prompt": "Explain quantum computing",
+  "outputMode": "detailed"
+}
+```
+**Output**:
+```json
+{
+  "message": "Quantum computing is a type of computation that harnesses quantum mechanical phenomena...",
+  "model": "Qwen/QwQ-32B",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 15,
+    "completion_tokens": 150,
+    "total_tokens": 165
+  },
+  "reasoning": "The user is asking about quantum computing..."
+}
+```
+
+### AI Agent Integration
+1. Add an **AI Agent** node to your workflow
+2. Add a **SiliconFlow Chat Model** node
+3. In the AI Agent configuration, select the SiliconFlow Chat Model as your language model
+4. Configure other AI Agent settings (tools, memory, etc.)
+5. Your AI Agent now uses SiliconFlow's powerful models!
 
 ## Advanced Features
 

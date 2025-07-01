@@ -292,6 +292,31 @@ export class SiliconFlow implements INodeType {
 				},
 			},
 			{
+				displayName: 'Output Mode',
+				name: 'outputMode',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['chat'],
+						operation: ['complete'],
+					},
+				},
+				options: [
+					{
+						name: 'Simple (Message Only)',
+						value: 'simple',
+						description: 'Return only the message content as a string',
+					},
+					{
+						name: 'Detailed (With Metadata)',
+						value: 'detailed',
+						description: 'Return structured object with message, usage, and metadata',
+					},
+				],
+				default: 'simple',
+				description: 'Choose the output format',
+			},
+			{
 				displayName: 'Additional Fields',
 				name: 'additionalFields',
 				type: 'collection',
@@ -767,8 +792,52 @@ export class SiliconFlow implements INodeType {
 						},
 					);
 
+					// Extract and format the response data
+					const responseData = response.data;
+					const choice = responseData.choices?.[0];
+					
+					if (!choice) {
+						throw new NodeOperationError(this.getNode(), 'No response received from the model');
+					}
+
+					// Check if user wants simple output (just the message content)
+					const outputMode = this.getNodeParameter('outputMode', i, 'simple') as string;
+					
+					let outputData: any;
+					
+					if (outputMode === 'simple') {
+						// Simple output - just the message content for easy use in workflows
+						outputData = choice.message?.content || '';
+					} else {
+						// Detailed output - structured data with metadata
+						outputData = {
+							// Main content - what users typically want
+							message: choice.message?.content || '',
+							
+							// Additional useful information
+							model: responseData.model,
+							finishReason: choice.finish_reason,
+							
+							// Usage statistics
+							usage: responseData.usage,
+							
+							// Include reasoning content if available (for reasoning models)
+							...(choice.message?.reasoning_content && {
+								reasoning: choice.message.reasoning_content,
+							}),
+							
+							// Include tool calls if any
+							...(choice.message?.tool_calls && {
+								toolCalls: choice.message.tool_calls,
+							}),
+							
+							// Raw response for advanced users (can be hidden in UI)
+							_rawResponse: responseData,
+						};
+					}
+
 					returnData.push({
-						json: response.data,
+						json: outputData,
 						pairedItem: { item: i },
 					});
 				} else if (resource === 'embeddings' && operation === 'create') {
@@ -797,8 +866,22 @@ export class SiliconFlow implements INodeType {
 						},
 					);
 
+					// Extract and format the embedding response
+					const responseData = response.data;
+					const outputData = {
+						// Main embedding data
+						embeddings: responseData.data?.map((item: any) => item.embedding) || [],
+						
+						// Metadata
+						model: responseData.model,
+						usage: responseData.usage,
+						
+						// Raw response for advanced users
+						_rawResponse: responseData,
+					};
+
 					returnData.push({
-						json: response.data,
+						json: outputData,
 						pairedItem: { item: i },
 					});
 				} else if (resource === 'rerank' && operation === 'create') {
@@ -856,8 +939,25 @@ export class SiliconFlow implements INodeType {
 						},
 					);
 
+					// Extract and format the rerank response
+					const responseData = response.data;
+					const outputData = {
+						// Main results - sorted by relevance
+						results: responseData.results || [],
+						
+						// Metadata
+						query: query,
+						documentsCount: documents.length,
+						
+						// Usage information
+						usage: responseData.tokens,
+						
+						// Raw response for advanced users
+						_rawResponse: responseData,
+					};
+
 					returnData.push({
-						json: response.data,
+						json: outputData,
 						pairedItem: { item: i },
 					});
 				}
