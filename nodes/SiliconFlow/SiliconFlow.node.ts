@@ -1111,13 +1111,36 @@ export class SiliconFlow implements INodeType {
 									);
 								}
 
+								// Clean base64 data (remove whitespace and data URL prefix if present)
+								let cleanedBase64 = base64Data.trim();
+								
+								// Remove data URL prefix if present
+								if (cleanedBase64.startsWith('data:')) {
+									const base64Index = cleanedBase64.indexOf('base64,');
+									if (base64Index !== -1) {
+										cleanedBase64 = cleanedBase64.substring(base64Index + 7);
+									}
+								}
+								
+								// Remove any remaining whitespace
+								cleanedBase64 = cleanedBase64.replace(/\s/g, '');
+								
+								// Validate base64 format
+								if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleanedBase64)) {
+									throw new NodeOperationError(
+										this.getNode(),
+										'Invalid base64 data format',
+									);
+								}
+
 								// Determine MIME type
 								let mimeType = 'image/jpeg'; // default
 								if (imageFormat === 'png') mimeType = 'image/png';
 								else if (imageFormat === 'webp') mimeType = 'image/webp';
 								else if (imageFormat === 'gif') mimeType = 'image/gif';
+								else if (imageFormat === 'jpeg') mimeType = 'image/jpeg';
 
-								imageUrl = `data:${mimeType};base64,${base64Data}`;
+								imageUrl = `data:${mimeType};base64,${cleanedBase64}`;
 							} else if (imageSource === 'binary') {
 								const binaryProperty = imageConfig.binaryProperty || 'data';
 								const binaryData = items[i].binary?.[binaryProperty];
@@ -1133,6 +1156,20 @@ export class SiliconFlow implements INodeType {
 								const imageFormat = imageConfig.imageFormat || 'auto';
 								let mimeType = binaryData.mimeType || 'image/jpeg';
 
+								// Normalize MIME type
+								if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
+									mimeType = 'image/jpeg';
+								} else if (mimeType.includes('png')) {
+									mimeType = 'image/png';
+								} else if (mimeType.includes('webp')) {
+									mimeType = 'image/webp';
+								} else if (mimeType.includes('gif')) {
+									mimeType = 'image/gif';
+								} else {
+									// Default to jpeg for unknown types
+									mimeType = 'image/jpeg';
+								}
+
 								// Override mime type if format is specified
 								if (imageFormat !== 'auto') {
 									mimeType = `image/${imageFormat}`;
@@ -1141,8 +1178,16 @@ export class SiliconFlow implements INodeType {
 								// Get base64 data from binary
 								let base64Data = '';
 								if (binaryData.data) {
-									// Data is already base64
-									base64Data = binaryData.data;
+									// Data is already base64, ensure it's clean
+									base64Data = binaryData.data.replace(/\s/g, ''); // Remove any whitespace
+									
+									// Validate base64 format
+									if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
+										throw new NodeOperationError(
+											this.getNode(),
+											'Invalid base64 data format in binary property',
+										);
+									}
 								} else {
 									throw new NodeOperationError(
 										this.getNode(),
@@ -1207,6 +1252,37 @@ export class SiliconFlow implements INodeType {
 					}
 
 					try {
+						// Validate the request before sending
+						const imageContents = content.filter((c) => c.type === 'image_url');
+						if (imageContents.length === 0) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'No valid images found in the request content',
+							);
+						}
+
+						// Validate each image URL
+						for (let idx = 0; idx < imageContents.length; idx++) {
+							const imgContent = imageContents[idx];
+							const url = imgContent.image_url?.url;
+							if (!url) {
+								throw new NodeOperationError(
+									this.getNode(),
+									`Image ${idx + 1} has no URL`,
+								);
+							}
+							
+							// Check if it's a data URL with proper format
+							if (url.startsWith('data:')) {
+								if (!url.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/]+=*$/)) {
+									throw new NodeOperationError(
+										this.getNode(),
+										`Image ${idx + 1} has invalid data URL format. Expected: data:image/TYPE;base64,BASE64_DATA`,
+									);
+								}
+							}
+						}
+
 						// Make the API request
 						const response: AxiosResponse = await axios.post(
 							`${credentials.baseUrl}/chat/completions`,
@@ -1257,7 +1333,7 @@ export class SiliconFlow implements INodeType {
 					} catch (error: any) {
 						// Enhanced error handling for vision requests
 						let errorMessage = 'Vision analysis failed';
-						
+
 						if (error.response?.data) {
 							const errorData = error.response.data;
 							if (errorData.error?.message) {
@@ -1272,7 +1348,7 @@ export class SiliconFlow implements INodeType {
 						}
 
 						// Add request details for debugging
-						errorMessage += `\nRequest details: Model=${model}, Images=${content.filter(c => c.type === 'image_url').length}, ContentSize=${JSON.stringify(requestBody).length} chars`;
+						errorMessage += `\nRequest details: Model=${model}, Images=${content.filter((c) => c.type === 'image_url').length}, ContentSize=${JSON.stringify(requestBody).length} chars`;
 
 						throw new NodeOperationError(this.getNode(), errorMessage);
 					}
