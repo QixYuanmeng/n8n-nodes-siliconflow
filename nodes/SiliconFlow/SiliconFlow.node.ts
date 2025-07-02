@@ -1085,7 +1085,7 @@ export class SiliconFlow implements INodeType {
 					// Build content array for the message
 					const content: any[] = [];
 
-					// Process images
+					// Process images first
 					if (imagesParam?.imageValues && imagesParam.imageValues.length > 0) {
 						for (const imageConfig of imagesParam.imageValues) {
 							const { imageSource, detail = 'auto' } = imageConfig;
@@ -1125,7 +1125,7 @@ export class SiliconFlow implements INodeType {
 								if (!binaryData) {
 									throw new NodeOperationError(
 										this.getNode(),
-										`No binary data found in property "${binaryProperty}"`,
+										`No binary data found in property "${binaryProperty}". Available properties: ${Object.keys(items[i].binary || {}).join(', ')}`,
 									);
 								}
 
@@ -1161,16 +1161,21 @@ export class SiliconFlow implements INodeType {
 								},
 							};
 
-							// Add detail parameter if specified
-							if (detail !== 'auto') {
+							// Add detail parameter if specified (only for high/low, not auto)
+							if (detail === 'high' || detail === 'low') {
 								imageContent.image_url.detail = detail;
 							}
 
 							content.push(imageContent);
 						}
+					} else {
+						throw new NodeOperationError(
+							this.getNode(),
+							'At least one image must be provided for vision analysis',
+						);
 					}
 
-					// Add text prompt to content
+					// Add text prompt to content (after images for better results with InternVL models)
 					content.push({
 						type: 'text',
 						text: prompt,
@@ -1201,53 +1206,76 @@ export class SiliconFlow implements INodeType {
 						requestBody.stream = additionalFields.stream;
 					}
 
-					// Make the API request
-					const response: AxiosResponse = await axios.post(
-						`${credentials.baseUrl}/chat/completions`,
-						requestBody,
-						{
-							headers: {
-								Authorization: `Bearer ${credentials.apiKey}`,
-								'Content-Type': 'application/json',
+					try {
+						// Make the API request
+						const response: AxiosResponse = await axios.post(
+							`${credentials.baseUrl}/chat/completions`,
+							requestBody,
+							{
+								headers: {
+									Authorization: `Bearer ${credentials.apiKey}`,
+									'Content-Type': 'application/json',
+								},
 							},
-						},
-					);
-
-					// Extract and format the response data
-					const responseData = response.data;
-					const choice = responseData.choices?.[0];
-
-					if (!choice) {
-						throw new NodeOperationError(
-							this.getNode(),
-							'No response received from the vision model',
 						);
+
+						// Extract and format the response data
+						const responseData = response.data;
+						const choice = responseData.choices?.[0];
+
+						if (!choice) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'No response received from the vision model',
+							);
+						}
+
+						// Prepare output data
+						const outputData = {
+							// Main content - the vision analysis result
+							analysis: choice.message?.content || '',
+
+							// Model information
+							model: responseData.model,
+							finishReason: choice.finish_reason,
+
+							// Usage statistics
+							usage: responseData.usage,
+
+							// Input information for reference
+							imageCount: imagesParam?.imageValues?.length || 0,
+							prompt: prompt,
+
+							// Raw response for advanced users
+							_rawResponse: responseData,
+						};
+
+						returnData.push({
+							json: outputData,
+							pairedItem: { item: i },
+						});
+					} catch (error: any) {
+						// Enhanced error handling for vision requests
+						let errorMessage = 'Vision analysis failed';
+						
+						if (error.response?.data) {
+							const errorData = error.response.data;
+							if (errorData.error?.message) {
+								errorMessage = `Vision API Error: ${errorData.error.message}`;
+							} else if (errorData.message) {
+								errorMessage = `Vision API Error: ${errorData.message}`;
+							} else {
+								errorMessage = `Vision API Error: ${JSON.stringify(errorData)}`;
+							}
+						} else if (error.message) {
+							errorMessage = `Vision Request Error: ${error.message}`;
+						}
+
+						// Add request details for debugging
+						errorMessage += `\nRequest details: Model=${model}, Images=${content.filter(c => c.type === 'image_url').length}, ContentSize=${JSON.stringify(requestBody).length} chars`;
+
+						throw new NodeOperationError(this.getNode(), errorMessage);
 					}
-
-					// Prepare output data
-					const outputData = {
-						// Main content - the vision analysis result
-						analysis: choice.message?.content || '',
-
-						// Model information
-						model: responseData.model,
-						finishReason: choice.finish_reason,
-
-						// Usage statistics
-						usage: responseData.usage,
-
-						// Input information for reference
-						imageCount: imagesParam?.imageValues?.length || 0,
-						prompt: prompt,
-
-						// Raw response for advanced users
-						_rawResponse: responseData,
-					};
-
-					returnData.push({
-						json: outputData,
-						pairedItem: { item: i },
-					});
 				} else if (resource === 'embeddings' && operation === 'create') {
 					const model = this.getNodeParameter('embeddingModel', i) as string;
 					const input = this.getNodeParameter('input', i) as string;
