@@ -48,6 +48,11 @@ export class SiliconFlow implements INodeType {
 						value: 'chat',
 					},
 					{
+						name: 'Vision',
+						value: 'vision',
+						description: 'Vision language model with image understanding',
+					},
+					{
 						name: 'Embeddings',
 						value: 'embeddings',
 					},
@@ -77,6 +82,26 @@ export class SiliconFlow implements INodeType {
 					},
 				],
 				default: 'complete',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['vision'],
+					},
+				},
+				options: [
+					{
+						name: 'Analyze',
+						value: 'analyze',
+						description: 'Analyze images with vision language model',
+						action: 'Analyze images with vision language model',
+					},
+				],
+				default: 'analyze',
 			},
 			{
 				displayName: 'Operation',
@@ -408,6 +433,273 @@ export class SiliconFlow implements INodeType {
 								],
 							},
 						],
+					},
+				],
+			},
+			// Vision options
+			{
+				displayName: 'Model',
+				name: 'visionModel',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['vision'],
+						operation: ['analyze'],
+					},
+				},
+				options: [
+					// Qwen VL 系列
+					{
+						name: 'Qwen2.5-VL-72B-Instruct (最强视觉理解)',
+						value: 'Qwen/Qwen2.5-VL-72B-Instruct',
+					},
+					{
+						name: 'Qwen2.5-VL-32B-Instruct (高性能)',
+						value: 'Qwen/Qwen2.5-VL-32B-Instruct',
+					},
+					{
+						name: 'QVQ-72B-Preview (视觉推理)',
+						value: 'Qwen/QVQ-72B-Preview',
+					},
+					{
+						name: 'Qwen2-VL-72B-Instruct',
+						value: 'Qwen/Qwen2-VL-72B-Instruct',
+					},
+					{
+						name: 'Qwen2-VL-7B-Instruct (Pro)',
+						value: 'Pro/Qwen/Qwen2-VL-7B-Instruct',
+					},
+					{
+						name: 'Qwen2.5-VL-7B-Instruct (Pro)',
+						value: 'Pro/Qwen/Qwen2.5-VL-7B-Instruct',
+					},
+					// DeepSeek VL2 系列
+					{
+						name: 'DeepSeek-VL2 (短上下文优化)',
+						value: 'deepseek-ai/deepseek-vl2',
+					},
+				],
+				default: 'Qwen/Qwen2.5-VL-32B-Instruct',
+				required: true,
+				description: 'The vision language model to use for image analysis',
+			},
+			{
+				displayName: 'Images',
+				name: 'images',
+				type: 'fixedCollection',
+				displayOptions: {
+					show: {
+						resource: ['vision'],
+						operation: ['analyze'],
+					},
+				},
+				default: {},
+				description: 'Images to analyze (supports binary data, URLs, or base64)',
+				typeOptions: {
+					multipleValues: true,
+					maxValue: 9,
+				},
+				options: [
+					{
+						name: 'imageValues',
+						displayName: 'Image',
+						values: [
+							{
+								displayName: 'Image Source',
+								name: 'imageSource',
+								type: 'options',
+								options: [
+									{
+										name: 'Binary Data',
+										value: 'binary',
+										description: 'Use binary data from previous node',
+									},
+									{
+										name: 'URL',
+										value: 'url',
+										description: 'Use image URL',
+									},
+									{
+										name: 'Base64',
+										value: 'base64',
+										description: 'Use base64 encoded image',
+									},
+								],
+								default: 'binary',
+							},
+							{
+								displayName: 'Binary Property',
+								name: 'binaryProperty',
+								type: 'string',
+								displayOptions: {
+									show: {
+										imageSource: ['binary'],
+									},
+								},
+								default: 'data',
+								description: 'Name of the binary property containing the image',
+							},
+							{
+								displayName: 'Image URL',
+								name: 'imageUrl',
+								type: 'string',
+								displayOptions: {
+									show: {
+										imageSource: ['url'],
+									},
+								},
+								default: '',
+								placeholder: 'https://example.com/image.jpg',
+								description: 'URL of the image to analyze',
+							},
+							{
+								displayName: 'Base64 Data',
+								name: 'base64Data',
+								type: 'string',
+								displayOptions: {
+									show: {
+										imageSource: ['base64'],
+									},
+								},
+								default: '',
+								description: 'Base64 encoded image data (without data:image prefix)',
+								typeOptions: {
+									rows: 4,
+								},
+							},
+							{
+								displayName: 'Image Format',
+								name: 'imageFormat',
+								type: 'options',
+								displayOptions: {
+									show: {
+										imageSource: ['binary', 'base64'],
+									},
+								},
+								options: [
+									{
+										name: 'Auto Detect',
+										value: 'auto',
+									},
+									{
+										name: 'JPEG',
+										value: 'jpeg',
+									},
+									{
+										name: 'PNG',
+										value: 'png',
+									},
+									{
+										name: 'WebP',
+										value: 'webp',
+									},
+									{
+										name: 'GIF',
+										value: 'gif',
+									},
+								],
+								default: 'auto',
+								description: 'Format of the image data',
+							},
+							{
+								displayName: 'Detail Level',
+								name: 'detail',
+								type: 'options',
+								options: [
+									{
+										name: 'Auto',
+										value: 'auto',
+										description: 'Automatic detail level selection',
+									},
+									{
+										name: 'Low',
+										value: 'low',
+										description: 'Low resolution (faster, cheaper)',
+									},
+									{
+										name: 'High',
+										value: 'high',
+										description: 'High resolution (slower, more detailed)',
+									},
+								],
+								default: 'auto',
+								description: 'Level of detail for image processing',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Prompt',
+				name: 'visionPrompt',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['vision'],
+						operation: ['analyze'],
+					},
+				},
+				default: 'Describe what you see in this image.',
+				required: true,
+				description: 'Text prompt describing what you want to know about the image(s)',
+				typeOptions: {
+					rows: 3,
+				},
+			},
+			{
+				displayName: 'Additional Fields',
+				name: 'visionAdditionalFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: {
+						resource: ['vision'],
+						operation: ['analyze'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Max Tokens',
+						name: 'max_tokens',
+						type: 'number',
+						default: 1024,
+						typeOptions: {
+							minValue: 1,
+							maxValue: 8192,
+						},
+						description: 'Maximum number of tokens to generate',
+					},
+					{
+						displayName: 'Temperature',
+						name: 'temperature',
+						type: 'number',
+						default: 0.7,
+						typeOptions: {
+							minValue: 0,
+							maxValue: 2,
+							numberPrecision: 2,
+						},
+						description: 'Controls randomness in the response',
+					},
+					{
+						displayName: 'Top P',
+						name: 'top_p',
+						type: 'number',
+						default: 1,
+						typeOptions: {
+							minValue: 0,
+							maxValue: 1,
+							numberPrecision: 2,
+						},
+						description: 'Controls diversity via nucleus sampling',
+					},
+					{
+						displayName: 'Stream',
+						name: 'stream',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to stream the response',
 					},
 				],
 			},
@@ -779,6 +1071,178 @@ export class SiliconFlow implements INodeType {
 							_rawResponse: responseData,
 						};
 					}
+
+					returnData.push({
+						json: outputData,
+						pairedItem: { item: i },
+					});
+				} else if (resource === 'vision' && operation === 'analyze') {
+					const model = this.getNodeParameter('visionModel', i) as string;
+					const prompt = this.getNodeParameter('visionPrompt', i) as string;
+					const imagesParam = this.getNodeParameter('images', i) as any;
+					const additionalFields = this.getNodeParameter('visionAdditionalFields', i) as any;
+
+					// Build content array for the message
+					const content: any[] = [];
+
+					// Process images
+					if (imagesParam?.imageValues && imagesParam.imageValues.length > 0) {
+						for (const imageConfig of imagesParam.imageValues) {
+							const { imageSource, detail = 'auto' } = imageConfig;
+
+							let imageUrl = '';
+
+							if (imageSource === 'url') {
+								imageUrl = imageConfig.imageUrl;
+								if (!imageUrl) {
+									throw new NodeOperationError(
+										this.getNode(),
+										'Image URL is required when using URL source',
+									);
+								}
+							} else if (imageSource === 'base64') {
+								const base64Data = imageConfig.base64Data;
+								const imageFormat = imageConfig.imageFormat || 'auto';
+
+								if (!base64Data) {
+									throw new NodeOperationError(
+										this.getNode(),
+										'Base64 data is required when using base64 source',
+									);
+								}
+
+								// Determine MIME type
+								let mimeType = 'image/jpeg'; // default
+								if (imageFormat === 'png') mimeType = 'image/png';
+								else if (imageFormat === 'webp') mimeType = 'image/webp';
+								else if (imageFormat === 'gif') mimeType = 'image/gif';
+
+								imageUrl = `data:${mimeType};base64,${base64Data}`;
+							} else if (imageSource === 'binary') {
+								const binaryProperty = imageConfig.binaryProperty || 'data';
+								const binaryData = items[i].binary?.[binaryProperty];
+
+								if (!binaryData) {
+									throw new NodeOperationError(
+										this.getNode(),
+										`No binary data found in property "${binaryProperty}"`,
+									);
+								}
+
+								// Convert binary data to base64
+								const imageFormat = imageConfig.imageFormat || 'auto';
+								let mimeType = binaryData.mimeType || 'image/jpeg';
+
+								// Override mime type if format is specified
+								if (imageFormat !== 'auto') {
+									mimeType = `image/${imageFormat}`;
+								}
+
+								// Get base64 data from binary
+								let base64Data = '';
+								if (binaryData.data) {
+									// Data is already base64
+									base64Data = binaryData.data;
+								} else {
+									throw new NodeOperationError(
+										this.getNode(),
+										'Binary data does not contain valid image data',
+									);
+								}
+
+								imageUrl = `data:${mimeType};base64,${base64Data}`;
+							}
+
+							// Add image to content
+							const imageContent: any = {
+								type: 'image_url',
+								image_url: {
+									url: imageUrl,
+								},
+							};
+
+							// Add detail parameter if specified
+							if (detail !== 'auto') {
+								imageContent.image_url.detail = detail;
+							}
+
+							content.push(imageContent);
+						}
+					}
+
+					// Add text prompt to content
+					content.push({
+						type: 'text',
+						text: prompt,
+					});
+
+					// Build the request body
+					const requestBody: any = {
+						model,
+						messages: [
+							{
+								role: 'user',
+								content,
+							},
+						],
+					};
+
+					// Add optional parameters from additionalFields
+					if (additionalFields.max_tokens !== undefined) {
+						requestBody.max_tokens = additionalFields.max_tokens;
+					}
+					if (additionalFields.temperature !== undefined) {
+						requestBody.temperature = additionalFields.temperature;
+					}
+					if (additionalFields.top_p !== undefined) {
+						requestBody.top_p = additionalFields.top_p;
+					}
+					if (additionalFields.stream !== undefined) {
+						requestBody.stream = additionalFields.stream;
+					}
+
+					// Make the API request
+					const response: AxiosResponse = await axios.post(
+						`${credentials.baseUrl}/chat/completions`,
+						requestBody,
+						{
+							headers: {
+								Authorization: `Bearer ${credentials.apiKey}`,
+								'Content-Type': 'application/json',
+							},
+						},
+					);
+
+					// Extract and format the response data
+					const responseData = response.data;
+					const choice = responseData.choices?.[0];
+
+					if (!choice) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'No response received from the vision model',
+						);
+					}
+
+					// Prepare output data
+					const outputData = {
+						// Main content - the vision analysis result
+						analysis: choice.message?.content || '',
+
+						// Model information
+						model: responseData.model,
+						finishReason: choice.finish_reason,
+
+						// Usage statistics
+						usage: responseData.usage,
+
+						// Input information for reference
+						imageCount: imagesParam?.imageValues?.length || 0,
+						prompt: prompt,
+
+						// Raw response for advanced users
+						_rawResponse: responseData,
+					};
 
 					returnData.push({
 						json: outputData,
