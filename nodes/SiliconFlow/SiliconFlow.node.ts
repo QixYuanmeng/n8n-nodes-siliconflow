@@ -1113,7 +1113,7 @@ export class SiliconFlow implements INodeType {
 
 								// Clean base64 data (remove whitespace and data URL prefix if present)
 								let cleanedBase64 = base64Data.trim();
-								
+
 								// Remove data URL prefix if present
 								if (cleanedBase64.startsWith('data:')) {
 									const base64Index = cleanedBase64.indexOf('base64,');
@@ -1121,16 +1121,13 @@ export class SiliconFlow implements INodeType {
 										cleanedBase64 = cleanedBase64.substring(base64Index + 7);
 									}
 								}
-								
+
 								// Remove any remaining whitespace
 								cleanedBase64 = cleanedBase64.replace(/\s/g, '');
-								
+
 								// Validate base64 format
 								if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleanedBase64)) {
-									throw new NodeOperationError(
-										this.getNode(),
-										'Invalid base64 data format',
-									);
+									throw new NodeOperationError(this.getNode(), 'Invalid base64 data format');
 								}
 
 								// Determine MIME type
@@ -1180,7 +1177,7 @@ export class SiliconFlow implements INodeType {
 								if (binaryData.data) {
 									// Data is already base64, ensure it's clean
 									base64Data = binaryData.data.replace(/\s/g, ''); // Remove any whitespace
-									
+
 									// Validate base64 format
 									if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
 										throw new NodeOperationError(
@@ -1266,12 +1263,9 @@ export class SiliconFlow implements INodeType {
 							const imgContent = imageContents[idx];
 							const url = imgContent.image_url?.url;
 							if (!url) {
-								throw new NodeOperationError(
-									this.getNode(),
-									`Image ${idx + 1} has no URL`,
-								);
+								throw new NodeOperationError(this.getNode(), `Image ${idx + 1} has no URL`);
 							}
-							
+
 							// Check if it's a data URL with proper format
 							if (url.startsWith('data:')) {
 								if (!url.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/]+=*$/)) {

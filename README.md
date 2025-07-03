@@ -1,10 +1,11 @@
 # n8n-nodes-siliconflow
 
-An n8n community node to integrate with SiliconFlow AI models, providing access to chat completions, text embeddings, and document reranking capabilities.
+An n8n community node to integrate with SiliconFlow AI models, providing access to chat completions, vision analysis, text embeddings, and document reranking capabilities.
 
 ## Features
 
 - 🤖 **Chat Completions**: Access to 20+ AI models including Qwen, GLM, DeepSeek, Hunyuan, and MiniMax
+- 👁️ **Vision Analysis**: Analyze images with powerful vision-language models (Qwen2.5-VL, QVQ, DeepSeek-VL2)
 - 🧮 **Text Embeddings**: Support for 9 embedding models including BGE, Qwen3-Embedding, and YoudAo
 - 📊 **Document Reranking**: Rerank documents for better relevance with 6 reranking models
 - 🎯 **AI Agent Integration**: Dedicated node for seamless integration with n8n AI Agent nodes
