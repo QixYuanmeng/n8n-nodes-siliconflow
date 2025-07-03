@@ -1,17 +1,17 @@
-const fs = require('fs');
-const path = require('path');
+var fs = require('fs');
+var path = require('path');
 
 function copyAssets() {
 	console.log('Copying SVG assets...');
 
 	// 创建目标目录（如果不存在）
-	const siliconFlowDistDir = path.join(__dirname, '..', 'dist', 'nodes', 'SiliconFlow');
-	const siliconFlowChatModelDistDir = path.join(
+	var siliconFlowDistDir = path.join(__dirname, '..', 'dist', 'nodes', 'SiliconFlow');
+	var siliconFlowChatModelDistDir = path.join(
 		__dirname,
 		'..',
 		'dist',
 		'nodes',
-		'SiliconFlowChatModel',
+		'SiliconFlowChatModel'
 	);
 
 	if (!fs.existsSync(siliconFlowDistDir)) {
@@ -22,7 +22,7 @@ function copyAssets() {
 	}
 
 	// 复制 SVG 文件
-	const svgFiles = [
+	var svgFiles = [
 		{
 			src: path.join(__dirname, '..', 'nodes', 'SiliconFlow', 'siliconflow.svg'),
 			dest: path.join(siliconFlowDistDir, 'siliconflow.svg'),
@@ -33,12 +33,14 @@ function copyAssets() {
 		},
 	];
 
-	svgFiles.forEach(({ src, dest }) => {
+	svgFiles.forEach(function(file) {
+		var src = file.src;
+		var dest = file.dest;
 		if (fs.existsSync(src)) {
 			fs.copyFileSync(src, dest);
-			console.log(`Copied: ${src} -> ${dest}`);
+			console.log('Copied: ' + src + ' -> ' + dest);
 		} else {
-			console.warn(`Source file not found: ${src}`);
+			console.warn('Source file not found: ' + src);
 		}
 	});
 
